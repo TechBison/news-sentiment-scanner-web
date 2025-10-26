@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sentiment Analysis Results</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Sentiment Analysis Results</h1>
+        <h2>Market Sentiment Summary</h2>
+        <p>Total Articles Analyzed: {{ total_articles }}</p>
+        <ul>
+            <li>Positive: {{ summary['Positive'] }} articles ({{ summary['Positive_percentage'] }}%)</li>
+            <li>Negative: {{ summary['Negative'] }} articles ({{ summary['Negative_percentage'] }}%)</li>
+            <li>Neutral: {{ summary['Neutral'] }} articles ({{ summary['Neutral_percentage'] }}%)</li>
+        </ul>
+
+        <h2>Detailed Results</h2>
+        <ul>
+            {% for result in detailed_results %}
+                <li>
+                    <h3>{{ result.title }}</h3>
+                    <p><strong>Published:</strong> {{ result.published }}</p>
+                    <p><strong>Sentiment:</strong> {{ result.sentiment }} (Polarity Score: {{ result.polarity | round(4) }})</p>
+                    <p><a href="{{ result.link }}" target="_blank">Read more</a></p>
+                </li>
+            {% endfor %}
+        </ul>
+
+        <a href="{{ url_for('index') }}">Back to Home</a>
+    </div>
+</body>
+</html>
