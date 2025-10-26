@@ -49,7 +49,7 @@ This project is a web application that allows users to analyze the sentiment of 
    ```
    Then run the container:
    ```
-  docker run --rm -p 5000:5000 --security-opt seccomp=unconfined news-sentiment-scanner
+   docker run --rm -p 5000:5000 --security-opt seccomp=unconfined news-sentiment-scanner
    ```
 
 ## Usage
