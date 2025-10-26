@@ -21,12 +21,26 @@ def fetch_news(query, num_articles=10):
     feed = feedparser.parse(rss_url)
     articles = []
     for entry in feed.entries[:num_articles]:
-        articles.append({
-            'title': entry.title,
-            'link': entry.link,
-            'published': entry.published,
-            'content': fetch_article_content(entry.link)
+        # Use summary (if present) as a fallback content source
+        summary_text = ''
+        if hasattr(entry, 'summary') and entry.summary:
+            # strip HTML tags from summary
+            soup = BeautifulSoup(entry.summary, 'html.parser')
+            summary_text = soup.get_text(separator=' ', strip=True)
+        title_text = getattr(entry, 'title', '') or ''
 
+        fetched = fetch_article_content(entry.link)
+        # Prefer fetched content; if too short, fall back to summary/title
+        base_fallback = f"{title_text} {summary_text}".strip()
+        content = fetched if (fetched and len(fetched) >= 200) else (summary_text or title_text or fetched)
+        if content and len(content) < 50 and base_fallback:
+            content = base_fallback
+
+        articles.append({
+            'title': title_text,
+            'link': entry.link,
+            'published': getattr(entry, 'published', ''),
+            'content': (content or '').strip(),
         })
     return articles
 
@@ -80,7 +94,7 @@ def analyze_sentiment(text, method='vader'):
 def summarize_sentiments(articles, method='vader'):
     summary = {'Positive': 0, 'Negative': 0, 'Neutral': 0}
     detailed_results = []
-    
+
     for article in articles:
         sentiment, polarity = analyze_sentiment(article['content'], method)
         summary[sentiment] += 1
@@ -91,15 +105,28 @@ def summarize_sentiments(articles, method='vader'):
             'sentiment': sentiment,
             'polarity': polarity
         })
-    
+
     total_len = len(articles)
+    # Compute percentages for template consumption
+    def pct(c):
+        return (c / total_len * 100) if total_len > 0 else 0
+    summary.update({
+        'Positive_percentage': pct(summary['Positive']),
+        'Negative_percentage': pct(summary['Negative']),
+        'Neutral_percentage': pct(summary['Neutral']),
+    })
+
+    # Console summary for debugging/CLI visibility
     print("\n--------- Market Sentiment Summary ---------\n")
     print(f"Total Articles Analyzed: {total_len}")
-    for sentiment, count in summary.items():
-        percentage = (count / total_len) * 100 if total_len > 0 else 0
-        print(f"{sentiment}: {count} articles ({percentage:.2f}%)")
+    for key in ['Positive', 'Negative', 'Neutral']:
+        count = summary[key]
+        percentage = summary[f"{key}_percentage"]
+        print(f"{key}: {count} articles ({percentage:.2f}%)")
     print("\n--------------------------------------------\n")
-    return detailed_results
+
+    # Return structure aligned with templates/results.html expectations
+    return detailed_results, summary, total_len
 
 def queries_create(query):
     appenders = [" stock news", " market analysis", " financial news", " economic outlook", " investment trends", " stock market updates"]

@@ -18,9 +18,9 @@ def results():
         articles = fetch_news(q, num_articles=5)
         all_articles.extend(articles)
     
-    detailed_results = summarize_sentiments(all_articles, method)
+    detailed_results, summary, total_articles = summarize_sentiments(all_articles, method)
     
-    return render_template('results.html', results=detailed_results)
+    return render_template('results.html', detailed_results=detailed_results, summary=summary, total_articles=total_articles)
 
 if __name__ == '__main__':
     app.run(debug=True)
