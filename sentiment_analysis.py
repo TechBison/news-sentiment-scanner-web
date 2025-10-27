@@ -9,6 +9,7 @@ from urllib.parse import quote
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
 import torch
 import numpy as np
+from concurrent.futures import ThreadPoolExecutor
 
 fibnert_model = AutoModelForSequenceClassification.from_pretrained("yiyanghkust/finbert-tone")
 fibnert_tokenizer = AutoTokenizer.from_pretrained("yiyanghkust/finbert-tone")
@@ -95,16 +96,19 @@ def summarize_sentiments(articles, method='vader'):
     summary = {'Positive': 0, 'Negative': 0, 'Neutral': 0}
     detailed_results = []
 
-    for article in articles:
-        sentiment, polarity = analyze_sentiment(article['content'], method)
-        summary[sentiment] += 1
-        detailed_results.append({
-            'title': article['title'],
-            'link': article['link'],
-            'published': article['published'],
-            'sentiment': sentiment,
-            'polarity': polarity
-        })
+    max_workers = min(8, len(articles)) if articles else 0
+    if max_workers > 0:
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            results = list(executor.map(lambda a: analyze_sentiment(a['content'], method), articles))
+        for article, (sentiment, polarity) in zip(articles, results):
+            summary[sentiment] += 1
+            detailed_results.append({
+                'title': article['title'],
+                'link': article['link'],
+                'published': article['published'],
+                'sentiment': sentiment,
+                'polarity': polarity
+            })
 
     total_len = len(articles)
     # Compute percentages for template consumption
